@@ -15,30 +15,46 @@ jobs:
         python-version: [3.9, 3.10]
 
     steps:
-      # 1. Checkout repo
+      # Checkout repo
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Setup Python
+      # Setup Python
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
-      # 3. Install dependencies
+      # Cache dependencies for speed
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+
+      # Install dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest flake8
+          pip install -r requirements-dev.txt
 
-      # 4. Lint check
-      - name: Run flake8 linting
-        run: |
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
+      # Lint check
+      - name: Run flake8 (lint)
+        run: flake8 .
 
-      # 5. Run tests
+      - name: Run black (check formatting)
+        run: black --check .
+
+      # Run tests
       - name: Run pytest
-        run: pytest --maxfail=3 --disable-warnings -q
+        run: pytest --maxfail=3 --disable-warnings -q --cov=.
+
+      # Upload coverage report
+      - name: Upload coverage to GitHub summary
+        run: |
+          coverage report -m >> $GITHUB_STEP_SUMMARY
 

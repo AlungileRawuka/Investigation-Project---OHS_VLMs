@@ -1,1 +1,42 @@
-#Dependendies
+# -----------------------------
+# Core Deep Learning
+# -----------------------------
+torch==2.0.1+cu118
+torchvision==0.15.2+cu118
+torchaudio==2.0.2+cu118
+# Use pre-built wheels for CUDA 11.8:
+# pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 torchaudio==2.0.2+cu118 -f https://download.pytorch.org/whl/torch_stable.html
+
+# -----------------------------
+# Hugging Face Ecosystem
+# -----------------------------
+transformers==4.41.2
+datasets==2.19.1
+accelerate==0.30.1
+peft==0.11.1
+sentencepiece==0.2.0
+
+# -----------------------------
+# Evaluation & Metrics
+# -----------------------------
+scikit-learn==1.3.2
+nltk==3.9.1
+rouge-score==0.1.2
+sacrebleu==2.4.2
+
+# -----------------------------
+# Image & Data Processing
+# -----------------------------
+pillow==10.2.0
+opencv-python==4.9.0.80
+tqdm==4.66.2
+numpy==1.26.4
+pandas==2.2.2
+matplotlib==3.8.4
+seaborn==0.13.2
+
+# -----------------------------
+# Web Interface
+# -----------------------------
+streamlit==1.35.0
+
