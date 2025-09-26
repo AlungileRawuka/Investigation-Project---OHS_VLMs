@@ -6,7 +6,7 @@ class BaseVLMWrapper:
         self.model_name = model_name
 
     def run(self, image_path, prompt):
-        raise NotImplementedError("Subclasses must implement this method")
+        
 
     def format_output(self, image_path, prompt, result):
         return {

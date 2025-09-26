@@ -4,12 +4,29 @@ import torch
 
 
 class InstructBLIPWrapper:
-    def __init__(self, model_id="Salesforce/instructblip-vicuna-7b", device=None):
-        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+    def __init__(self, 
+                 model_id="Salesforce/instructblip-flan-t5-xl",
+                 max_new_tokens=128,
+                 temperature=1.0,
+                 num_beams=1,
+                 do_sample=False):
+        # Force CPU
+        self.device = "cpu"
+
+        # Load processor + model
         self.processor = InstructBlipProcessor.from_pretrained(model_id)
         self.model = InstructBlipForConditionalGeneration.from_pretrained(model_id).to(self.device)
 
-    def run(self, image_filename, prompt="Describe hazards in this scene."):
+        # Store generation kwargs
+        self.gen_kwargs = dict(
+            max_new_tokens=max_new_tokens,
+            temperature=temperature,
+            num_beams=num_beams,
+            do_sample=do_sample,
+            early_stopping=True
+        )
+
+    def run(self, image_filename, prompt="Identify any OHS hazards and list them concisely (one per line)"):
         """
         Run inference on a single image.
         Args:
@@ -18,16 +35,24 @@ class InstructBLIPWrapper:
         Returns:
             str: Generated text description
         """
+        # Load image
         image = load_image(image_filename, subdir="raw")
+
+        # Preprocess inputs
         inputs = self.processor(images=image, text=prompt, return_tensors="pt").to(self.device)
-        output = self.model.generate(**inputs)
+
+        # Generate output
+        output = self.model.generate(**inputs, **self.gen_kwargs)
+
+        # Decode output
         return self.processor.decode(output[0], skip_special_tokens=True)
 
 
 if __name__ == "__main__":
-    model = InstructBLIPWrapper()
-    result = model.run("sample_image.jpg")
+    model = InstructBLIPWrapper(max_new_tokens=100, temperature=0.7, num_beams=3, do_sample=True)
+    result = model.run("testImage.PNG")
     print("InstructBLIP output:", result)
+
 
 
 
