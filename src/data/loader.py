@@ -6,47 +6,39 @@ import pandas as pd
 
 # Base path: repo root / data
 BASE_DATA_PATH = Path(__file__).resolve().parents[2] / "data"
+IMAGES_PATH = BASE_DATA_PATH / "images"
 
-def get_path(filename, subdir="raw"):
+def get_path(filename, subdir=None):
     """
     Resolve a file path inside the data/ directory.
     
     Args:
-        filename (str): Name of the file 
-        subdir (str): Subdirectory inside data/ (raw, processed, annotations).
+        filename (str): Name of the file.
+        subdir (str, optional): Subdirectory inside data/. Defaults to None.
     Returns:
         pathlib.Path: Absolute path to the file.
     """
-    path = BASE_DATA_PATH / subdir / filename
+    path = IMAGES_PATH / filename if subdir is None else BASE_DATA_PATH / subdir / filename
     if not path.exists():
         raise FileNotFoundError(f"File not found: {path}")
     return path
 
-def load_image(filename, subdir="raw"):
+def load_image(filename):
     """
-    Load an image from the data/ directory.
+    Load an image from data/images.
     
     Args:
-        filename (str): Image filename.
-        subdir (str): Subdirectory ("raw" or "processed").
+        filename (str): Image filename or full path.
     Returns:
         PIL.Image.Image: Loaded image in RGB format.
     """
-    path = get_path(filename, subdir=subdir)
+    path = Path(filename)
+    if not path.exists():
+        # fallback to data/images folder
+        path = IMAGES_PATH / filename
+    if not path.exists():
+        raise FileNotFoundError(f"File not found: {path}")
     return Image.open(path).convert("RGB")
-
-def load_json(filename, subdir="annotations"):
-    """
-    Load a JSON annotation file from data/annotations.
-    
-    Args:
-        filename (str): JSON filename.
-    Returns:
-        dict: Parsed JSON content.
-    """
-    path = get_path(filename, subdir=subdir)
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
 
 def load_csv(filename, subdir="annotations"):
     """
@@ -57,5 +49,7 @@ def load_csv(filename, subdir="annotations"):
     Returns:
         pandas.DataFrame: Dataframe with CSV content.
     """
-    path = get_path(filename, subdir=subdir)
+    path = BASE_DATA_PATH / subdir / filename
+    if not path.exists():
+        raise FileNotFoundError(f"File not found: {path}")
     return pd.read_csv(path)
