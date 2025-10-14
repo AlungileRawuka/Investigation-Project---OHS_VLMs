@@ -9,6 +9,7 @@ import os
 import gc
 import torch
 import time
+import base64
 
 # ----------------------------
 # Dynamic Model Loader
@@ -36,6 +37,16 @@ def load_model(model_name):
         raise ValueError(f"Unknown model: {model_name}")
 
 # ----------------------------
+# Convert image to base64 for HTML embedding
+# ----------------------------
+def image_to_base64(image_path):
+    try:
+        with open(image_path, "rb") as img_file:
+            return base64.b64encode(img_file.read()).decode('utf-8')
+    except Exception as e:
+        return None
+
+# ----------------------------
 # Prediction Function with Futuristic Loader
 # ----------------------------
 def predict_table(images, model_choice, prompt, progress=gr.Progress()):
@@ -47,7 +58,7 @@ def predict_table(images, model_choice, prompt, progress=gr.Progress()):
     if not isinstance(images, list):
         images = [images]
 
-    data = {"Filename": [], "OHS_Issues": [], "Image_Path": []}
+    data = {"Filename": [], "OHS_Issues": [], "Image_Path": [], "Image_Base64": []}
     total_steps = len(images) * len(model_choice)
     step = 0
 
@@ -58,6 +69,9 @@ def predict_table(images, model_choice, prompt, progress=gr.Progress()):
         else:
             with open(img_path, "wb") as f:
                 f.write(img_file.read())
+
+        # Convert image to base64 for HTML display
+        img_base64 = image_to_base64(img_path)
 
         for model_name in model_choice:
             step += 1
@@ -71,21 +85,26 @@ def predict_table(images, model_choice, prompt, progress=gr.Progress()):
                 data["Filename"].append(os.path.basename(img_path))
                 data["OHS_Issues"].append(output)
                 data["Image_Path"].append(img_path)
+                data["Image_Base64"].append(img_base64)
             except Exception as e:
                 data["Filename"].append(os.path.basename(img_path))
                 data["OHS_Issues"].append(f"Error: {str(e)}")
                 data["Image_Path"].append(img_path)
+                data["Image_Base64"].append(img_base64)
             finally:
                 del model
                 torch.cuda.empty_cache()
                 gc.collect()
 
     # ----------------------------
-    # 🧾 Build HTML Table
+    # 🧾 Build HTML Table with base64 embedded images
     # ----------------------------
     html_rows = ""
     for i in range(len(data["Filename"])):
-        img_html = f'<img src="{data["Image_Path"][i]}" width="200"/>'
+        if data["Image_Base64"][i]:
+            img_html = f'<img src="data:image/png;base64,{data["Image_Base64"][i]}" width="200" style="border-radius:8px;"/>'
+        else:
+            img_html = '<span style="color:#ff6b6b;">Image not available</span>'
         html_rows += f"<tr><td>{data['Filename'][i]}</td><td>{img_html}</td><td>{data['OHS_Issues'][i]}</td></tr>"
 
     html_table = f"""
