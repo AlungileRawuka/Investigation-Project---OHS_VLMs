@@ -97,22 +97,99 @@ def predict_table(images, model_choice, prompt, progress=gr.Progress()):
                 gc.collect()
 
     # ----------------------------
-    # 🧾 Build HTML Table with base64 embedded images
+    # 🧾 Build HTML Table with clickable thumbnail images
     # ----------------------------
     html_rows = ""
     for i in range(len(data["Filename"])):
         if data["Image_Base64"][i]:
-            img_html = f'<img src="data:image/png;base64,{data["Image_Base64"][i]}" width="200" style="border-radius:8px;"/>'
+            img_html = f'''<img src="data:image/png;base64,{data["Image_Base64"][i]}" 
+                          width="120" 
+                          style="border-radius:8px; cursor:pointer; transition: transform 0.2s;" 
+                          onclick="openModal(this.src)"
+                          onmouseover="this.style.transform='scale(1.05)'"
+                          onmouseout="this.style.transform='scale(1)'"/>'''
         else:
             img_html = '<span style="color:#ff6b6b;">Image not available</span>'
         html_rows += f"<tr><td>{data['Filename'][i]}</td><td>{img_html}</td><td>{data['OHS_Issues'][i]}</td></tr>"
 
     html_table = f"""
+    <style>
+        .modal {{
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            animation: fadeIn 0.3s;
+        }}
+        
+        @keyframes fadeIn {{
+            from {{ opacity: 0; }}
+            to {{ opacity: 1; }}
+        }}
+        
+        .modal-content {{
+            margin: auto;
+            display: block;
+            max-width: 90%;
+            max-height: 90%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(100, 255, 218, 0.3);
+        }}
+        
+        .close {{
+            position: absolute;
+            top: 20px;
+            right: 40px;
+            color: #64ffda;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s;
+        }}
+        
+        .close:hover {{
+            color: #ff6b6b;
+        }}
+    </style>
+    
+    <div id="imageModal" class="modal" onclick="closeModal()">
+        <span class="close">&times;</span>
+        <img class="modal-content" id="modalImage">
+    </div>
+    
+    <script>
+        function openModal(imageSrc) {{
+            document.getElementById('imageModal').style.display = 'block';
+            document.getElementById('modalImage').src = imageSrc;
+            document.body.style.overflow = 'hidden';
+        }}
+        
+        function closeModal() {{
+            document.getElementById('imageModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }}
+        
+        // Close modal with ESC key
+        document.addEventListener('keydown', function(event) {{
+            if (event.key === 'Escape') {{
+                closeModal();
+            }}
+        }});
+    </script>
+    
     <div style="font-family: 'Segoe UI', sans-serif;">
         <table border="1" style="border-collapse:collapse;width:100%;text-align:left;">
             <tr style="background-color:#0a192f;color:#64ffda;">
                 <th>Filename</th>
-                <th>Image</th>
+                <th>Image Preview (Click to Enlarge)</th>
                 <th>OHS Issues</th>
             </tr>
             {html_rows}
