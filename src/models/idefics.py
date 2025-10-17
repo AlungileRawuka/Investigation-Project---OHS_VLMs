@@ -1,57 +1,85 @@
 import torch
-from transformers import AutoProcessor, AutoModelForVision2Seq
+from transformers import AutoProcessor, Idefics3ForConditionalGeneration
 from src.data.loader import load_image
+import re
 
 class IDEFICSWrapper:
-    def __init__(self, model_id="HuggingFaceM4/idefics2-8b"):
-        # Force CPU
-        self.device = "cpu"
-        print("Using device:", self.device)
+    """
+    Wrapper for HuggingFaceM4/Idefics3-8B-Llama3
+    Clean, CPU-safe, and prompt-corrected.
+    """
+
+    def __init__(self, model_id="HuggingFaceM4/Idefics3-8B-Llama3", device="cpu"):
+        self.device = torch.device(device)
+        print(f"Loading IDEFICS model on device: {self.device}")
+
+        # Load model + processor using Idefics3-specific class
         self.processor = AutoProcessor.from_pretrained(model_id)
-        self.model = AutoModelForVision2Seq.from_pretrained(model_id).to(self.device)
+        self.model = Idefics3ForConditionalGeneration.from_pretrained(
+            model_id,
+            torch_dtype=torch.float32,   # safer for CPU
+        ).to(self.device)
 
-    def _clean_output(self, output: str, prompt: str) -> str:
+        print("IDEFICS successfully loaded on", self.device)
+
+    def _clean_output(self, text: str, prompt: str) -> str:
         """
-        Remove the prompt if the model echoes it back.
+        Remove user/assistant labels, prompt echo, and extra noise.
         """
-        output = output.strip()
-        if output.lower().startswith(prompt.lower()):
-            return output[len(prompt):].strip(" :.-\n")
-        return output
 
-    def run(self, image_filename, prompt="Identify, list and describe all OHS issues in this image in a concise manner",
-            max_new_tokens=128, num_beams=4):
+        # Remove "User:" and everything up to "Assistant:"
+        text = re.sub(r"(?is)^.*?Assistant:\s*", "", text)
+
+        # Remove any leftover "User:" label if it appears again
+        text = re.sub(r"(?i)\bUser:\s*", "", text)
+
+        # Remove the prompt itself if echoed
+        if prompt.lower() in text.lower():
+            pattern = re.escape(prompt)
+            text = re.sub(pattern, "", text, flags=re.IGNORECASE)
+
+        # Clean up extra spaces and formatting
+        text = re.sub(r"\s{2,}", " ", text)
+        text = text.strip(" .:-\n")
+
+        return text if text else "(No valid output generated; possibly CPU-limited)"
+
+    def run(
+        self,
+        image_path: str,
+        prompt: str = "Identify, list and describe all OHS issues in this image in a concise manner.",
+        max_new_tokens: int = 128,
+    ) -> str:
         """
-        Run inference on a single image (CPU).
-        Returns generated text (post-processed to remove prompt echo).
+        Run inference on an image and return model output.
         """
-        # load and prepare images
-        
-        image = load_image(image_filename)
+        image = load_image(image_path)
 
+        # Structured chat format
+        messages = [
+            {"role": "user", "content": [{"type": "image"}, {"type": "text", "text": prompt}]}
+        ]
 
-        # include <image> placeholder so text/images align
-        text_prompt = f"<image>\n{prompt}"
-
+        # Build inputs
+        text_prompt = self.processor.apply_chat_template(
+            messages,
+            add_generation_prompt=True,
+            return_tensors="pt"
+        )
         inputs = self.processor(
-            text=text_prompt,
             images=[image],
+            text=text_prompt,
             return_tensors="pt"
         ).to(self.device)
 
-        # Beam search generation
-        output_ids = self.model.generate(
+        # Generate output
+        output = self.model.generate(
             **inputs,
             max_new_tokens=max_new_tokens,
-            num_beams=num_beams,
-            do_sample=False,       # disable sampling for beam search
-            early_stopping=True 
+            do_sample=False
         )
 
-        decoded = self.processor.batch_decode(output_ids, skip_special_tokens=True)[0]
+        decoded = self.processor.batch_decode(output, skip_special_tokens=True)[0]
         return self._clean_output(decoded, prompt)
-
-
-
 
 

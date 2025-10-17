@@ -10,6 +10,7 @@ import gc
 import torch
 import time
 import base64
+import traceback
 
 # ----------------------------
 # Dynamic Model Loader
@@ -33,6 +34,12 @@ def load_model(model_name):
     elif model_name == "LLaVA":
         from src.models.llava import LlavaWrapper
         return LlavaWrapper()
+    elif model_name == "OFA":
+        from src.models.ofa import OFAWrapper
+        return OFAWrapper()
+    elif model_name == "MiniGPT-4":
+        from src.models.minigpt4 import MiniGPT4Wrapper
+        return MiniGPT4Wrapper()
     else:
         raise ValueError(f"Unknown model: {model_name}")
 
@@ -73,29 +80,37 @@ def predict_table(images, model_choice, prompt, progress=gr.Progress()):
         # Convert image to base64 for HTML display
         img_base64 = image_to_base64(img_path)
 
-        for model_name in model_choice:
+        for model_name in model_choice: 
             step += 1
-            progress(step/total_steps, desc=f"🤖 Processing {os.path.basename(img_path)} with {model_name}... ⚡")
+            progress(step / total_steps, desc=f"🤖 Processing {os.path.basename(img_path)} with {model_name}... ⚡")
 
+            model = None  # ensure variable exists
             try:
+                print(f"\n=== Loading model: {model_name} ===")
                 model = load_model(model_name)
+                print(f"{model_name} successfully loaded on {model.device if hasattr(model, 'device') else 'unknown device'}")
                 # Simulate loader activity
+
                 time.sleep(1.5)
+                print(f" Running model: {model_name}")
                 output = model.run(img_path, prompt=prompt)
+                print(f"{model_name} output: {output[:100]}...")  # show start of result for debug
                 data["Filename"].append(os.path.basename(img_path))
                 data["OHS_Issues"].append(output)
                 data["Image_Path"].append(img_path)
                 data["Image_Base64"].append(img_base64)
             except Exception as e:
+                print(f"\n❌ ERROR in {model_name}:\n{e}")
+                traceback.print_exc()  # full error trace in logs
                 data["Filename"].append(os.path.basename(img_path))
                 data["OHS_Issues"].append(f"Error: {str(e)}")
                 data["Image_Path"].append(img_path)
                 data["Image_Base64"].append(img_base64)
             finally:
-                del model
+                if model is not None:
+                    del model
                 torch.cuda.empty_cache()
                 gc.collect()
-
     # ----------------------------
     # 🧾 Build HTML Table with clickable thumbnail images
     # ----------------------------
@@ -213,7 +228,7 @@ def predict_table(images, model_choice, prompt, progress=gr.Progress()):
 # ----------------------------
 # 🌐 Gradio Interface
 # ----------------------------
-model_options = ["IDEFICS", "InstructBLIP", "BLIP-Base", "BLIP-Large", "BLIP-2", "LLaVA"]
+model_options = ["IDEFICS", "InstructBLIP", "BLIP-Base", "BLIP-Large", "BLIP-2", "LLaVA", "OFA", "MiniGPT-4"]
 
 with gr.Blocks(css="""
 #title { 
