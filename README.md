@@ -27,7 +27,7 @@ The backend pipeline was run on the Wits cluster with 128 GB of CPU RAM
 
 -Git: For version control
 
-**Reproducibilty Guide"
+**Reproducibilty Guide**"
 
 -To reproduce results:
 
@@ -43,7 +43,10 @@ This will produce the link to the web interface.
 
 **To run the evaluation scripts**
 Enter the following commands:
+
 cd evaluation
+
 python evaluation_bar_graph.py
+
 python evaluation_heatmap.py
 
