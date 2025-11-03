@@ -1,12 +1,14 @@
 import os
 import csv
-from test import *  # your OFA wrapper
+from minigpt4 import *  # your OFA wrapper
 
 # Folder with images
 folder_path = "images"
 
 # Output CSV file
 csv_path = "ohs_results.csv"
+
+model = MiniGPT4Wrapper()
 
 # Create/open CSV file
 with open(csv_path, mode="w", newline="", encoding="utf-8") as csv_file:
@@ -20,7 +22,7 @@ with open(csv_path, mode="w", newline="", encoding="utf-8") as csv_file:
             
             try:
                 # Run OFA model
-                description = main(file_path, prompt="describe and list all the occupational health and safety issues in the image in a concise manner")
+                description = model.run(file_path, prompt="describe and list all the occupational health and safety issues in the image in a concise manner")
                 
                 # Write to CSV
                 writer.writerow(["MiniGPT-4", filename, description])
@@ -28,3 +30,4 @@ with open(csv_path, mode="w", newline="", encoding="utf-8") as csv_file:
             
             except Exception as e:
                 print(f"Error processing {filename}: {e}")
+
