@@ -50,3 +50,23 @@ python evaluation_bar_graph.py
 
 python evaluation_heatmap.py
 
+**MODEL SETUP: MiniGPT-4**
+  - clone the repository: git clone https://github.com/Vision-CAIR/MiniGPT-4.git
+  - change the directory to: cd MiniGPT-4
+  - create python virtual enviroment: conda env create -f environment.yml
+  - clone vicuna: git lfs install
+                  git clone https://huggingface.co/lmsys/vicuna-7b-v1.3
+  - follow the instructions on: https://github.com/Vision-CAIR/MiniGPT-4 (for further setups like config files and model                                                                            weights).
+  - include the script on: src/models/minigpt4.py (on the same folder)
+  - run the script for inference: source /usr/local/etc/profile.d/conda.sh && conda activate minigptv && python minigpt4.py
+  - for batch processing run: source /usr/local/etc/profile.d/conda.sh && conda activate minigptv && python batch_minigpt.py
+
+**MODEL SETUP: OFA**
+  - clone the repository: git clone --single-branch --branch feature/add_transformers https://github.com/OFA-Sys/OFA.git
+  - install the model from huggingface:    git lfs install
+                                           git clone https://huggingface.co/OFA-Sys/ofa-base
+  - install transformers: cd OFA/transformers
+                          !pip install .
+  - include the script on: src/models/ofa.py  (on the same folder)
+  - run the script for inference: python ofa.py
+  - for batch processing run: python batch_ofa.py
