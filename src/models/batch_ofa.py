@@ -1,12 +1,14 @@
 import os
 import csv
-from ofatest import *  # your OFA wrapper
+from ofa import *  # your OFA wrapper
 
 # Folder with images
 folder_path = "images"
 
 # Output CSV file
 csv_path = "ohs_results.csv"
+
+model = OFAWrapper()
 
 # Create/open CSV file
 with open(csv_path, mode="w", newline="", encoding="utf-8") as csv_file:
@@ -20,7 +22,7 @@ with open(csv_path, mode="w", newline="", encoding="utf-8") as csv_file:
             
             try:
                 # Run OFA model
-                description = ofa_model(file_path, prompt="describe OHS issue in image")
+                description = model.generate_caption(file_path)
                 
                 # Write to CSV
                 writer.writerow(["OFA", filename, description])
@@ -28,3 +30,4 @@ with open(csv_path, mode="w", newline="", encoding="utf-8") as csv_file:
             
             except Exception as e:
                 print(f"Error processing {filename}: {e}")
+
